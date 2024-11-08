@@ -19,10 +19,6 @@
             padding: 20px;
             margin-bottom: 20px;
         }
-        h1, h2 {
-            margin-top: 0;
-            color: #333;
-        }
         select {
             padding: 8px;
             width: 300px;
@@ -125,8 +121,6 @@
     </div>
 
     <script>
-        const scriptUrl = 'https://script.google.com/macros/s/AKfycbxGrCtTYWAM_kaQXGdk1J7TUTedse3kx6LNIva0GZpZfQcQXvMvLR56VLJjeTptOgJZkw/exec';
-
         const rutSelector = document.getElementById('rutSelector');
         const verNotasBtn = document.getElementById('verNotas');
         const resultados = document.getElementById('resultados');
@@ -151,33 +145,24 @@
             }, 3000);
         }
 
-        // Función para hacer peticiones al servidor
-        async function fetchFromServer(action, data = null) {
-            try {
-                const response = await fetch(`${scriptUrl}?action=${action}${data ? '&data=' + encodeURIComponent(JSON.stringify(data)) : ''}`);
-                if (!response.ok) throw new Error('Network response was not ok');
-                return await response.json();
-            } catch (error) {
-                throw new Error('Error en la petición: ' + error.message);
-            }
-        }
-
         // Cargar lista de estudiantes al inicio
-        window.onload = async function() {
-            try {
-                showLoading();
-                const estudiantes = await fetchFromServer('obtenerEstudiantes');
-                estudiantes.forEach(estudiante => {
-                    const option = document.createElement('option');
-                    option.value = estudiante.rut;
-                    option.textContent = estudiante.rut;
-                    rutSelector.appendChild(option);
-                });
-            } catch (error) {
-                showError('Error al cargar la lista de estudiantes: ' + error.message);
-            } finally {
-                hideLoading();
-            }
+        window.onload = function() {
+            showLoading();
+            google.script.run
+                .withSuccessHandler(function(estudiantes) {
+                    estudiantes.forEach(estudiante => {
+                        const option = document.createElement('option');
+                        option.value = estudiante.rut;
+                        option.textContent = estudiante.rut;
+                        rutSelector.appendChild(option);
+                    });
+                    hideLoading();
+                })
+                .withFailureHandler(function(error) {
+                    showError('Error al cargar la lista de estudiantes: ' + error);
+                    hideLoading();
+                })
+                .obtenerEstudiantes();
         };
 
         // Habilitar/deshabilitar botón según selección
@@ -187,19 +172,22 @@
         });
 
         // Manejar click en Ver Notas
-        verNotasBtn.addEventListener('click', async function() {
+        verNotasBtn.addEventListener('click', function() {
             if (!rutSelector.value) return;
             
-            try {
-                showLoading();
-                resultados.classList.add('hidden');
-                const notas = await fetchFromServer('obtenerNotas', { rut: rutSelector.value });
-                mostrarNotas(notas);
-            } catch (error) {
-                showError('Error al obtener las notas: ' + error.message);
-            } finally {
-                hideLoading();
-            }
+            showLoading();
+            resultados.classList.add('hidden');
+            
+            google.script.run
+                .withSuccessHandler(function(notas) {
+                    mostrarNotas(notas);
+                    hideLoading();
+                })
+                .withFailureHandler(function(error) {
+                    showError('Error al obtener las notas: ' + error);
+                    hideLoading();
+                })
+                .obtenerNotas(rutSelector.value);
         });
 
         function mostrarNotas(data) {
