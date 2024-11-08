@@ -4,113 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Notas Estudiantes</title>
-    <base target="_top">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 0 20px;
-        }
-        .card {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        select {
-            padding: 8px;
-            width: 300px;
-            margin-right: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        button {
-            background: #1a73e8;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:disabled {
-            background: #ccc;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-        th {
-            background: #f8f9fa;
-        }
-        .nota-final {
-            font-weight: bold;
-        }
-        .hidden {
-            display: none;
-        }
-        #loading {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255,255,255,0.9);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        #error {
-            color: red;
-            margin-top: 10px;
-            display: none;
-        }
-    </style>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body>
-    <div id="loading">Cargando...</div>
-    <div id="error"></div>
-
-    <div class="card">
-        <h1>Sistema de Notas Estudiantes</h1>
-        <div>
-            <label>Seleccione su RUT:</label><br><br>
-            <select id="rutSelector">
-                <option value="">Seleccione...</option>
-            </select>
-            <button id="verNotas" disabled>Ver Notas</button>
-        </div>
-    </div>
-
-    <div id="resultados" class="hidden">
-        <div class="card">
-            <h2>Notas del Estudiante</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Criterio</th>
-                        <th>Nota</th>
-                    </tr>
-                </thead>
-                <tbody id="notasTable"></tbody>
-            </table>
+<body class="bg-gray-100 min-h-screen p-4">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h1 class="text-2xl font-bold mb-4">Sistema de Notas Estudiantes</h1>
+            <p class="mb-4">
+                Para ver tus notas, accede a través del siguiente enlace:
+                <a href="https://script.google.com/macros/s/AKfycbxGrCtTYWAM_kaQXGdk1J7TUTedse3kx6LNIva0GZpZfQcQXvMvLR56VLJjeTptOgJZkw/exec" 
+                   class="text-blue-500 hover:text-blue-700 underline"
+                   target="_blank">
+                    Ver Sistema de Notas
+                </a>
+            </p>
         </div>
 
-        <div class="card">
-            <h2>Observaciones</h2>
-            <p id="observaciones"></p>
-        </div>
-
-        <div class="card">
-            <h2>Criterios de Evaluación</h2>
-            <ul>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold mb-4">Criterios de Evaluación</h2>
+            <ul class="list-disc pl-6 space-y-2">
                 <li>Comunicación: 20% de la nota final</li>
                 <li>Coordinación: 20% de la nota final</li>
                 <li>Colaboración: 20% de la nota final</li>
@@ -119,116 +31,5 @@
             </ul>
         </div>
     </div>
-
-    <script>
-        const rutSelector = document.getElementById('rutSelector');
-        const verNotasBtn = document.getElementById('verNotas');
-        const resultados = document.getElementById('resultados');
-        const notasTable = document.getElementById('notasTable');
-        const observacionesText = document.getElementById('observaciones');
-        const loading = document.getElementById('loading');
-        const error = document.getElementById('error');
-
-        function showLoading() {
-            loading.style.display = 'block';
-        }
-
-        function hideLoading() {
-            loading.style.display = 'none';
-        }
-
-        function showError(message) {
-            error.textContent = message;
-            error.style.display = 'block';
-            setTimeout(() => {
-                error.style.display = 'none';
-            }, 3000);
-        }
-
-        // Cargar lista de estudiantes al inicio
-        window.onload = function() {
-            showLoading();
-            google.script.run
-                .withSuccessHandler(function(estudiantes) {
-                    estudiantes.forEach(estudiante => {
-                        const option = document.createElement('option');
-                        option.value = estudiante.rut;
-                        option.textContent = estudiante.rut;
-                        rutSelector.appendChild(option);
-                    });
-                    hideLoading();
-                })
-                .withFailureHandler(function(error) {
-                    showError('Error al cargar la lista de estudiantes: ' + error);
-                    hideLoading();
-                })
-                .obtenerEstudiantes();
-        };
-
-        // Habilitar/deshabilitar botón según selección
-        rutSelector.addEventListener('change', function() {
-            verNotasBtn.disabled = !this.value;
-            resultados.classList.add('hidden');
-        });
-
-        // Manejar click en Ver Notas
-        verNotasBtn.addEventListener('click', function() {
-            if (!rutSelector.value) return;
-            
-            showLoading();
-            resultados.classList.add('hidden');
-            
-            google.script.run
-                .withSuccessHandler(function(notas) {
-                    mostrarNotas(notas);
-                    hideLoading();
-                })
-                .withFailureHandler(function(error) {
-                    showError('Error al obtener las notas: ' + error);
-                    hideLoading();
-                })
-                .obtenerNotas(rutSelector.value);
-        });
-
-        function mostrarNotas(data) {
-            notasTable.innerHTML = '';
-            
-            const criterios = [
-                ['comunicacion', 'Comunicación'],
-                ['coordinacion', 'Coordinación'],
-                ['colaboracion', 'Colaboración'],
-                ['proyecto', 'Proyecto'],
-                ['linkedin', 'LinkedIn'],
-                ['notaFinal', 'Nota Final']
-            ];
-
-            criterios.forEach(([key, label]) => {
-                const row = document.createElement('tr');
-                const nameCell = document.createElement('td');
-                const gradeCell = document.createElement('td');
-
-                nameCell.textContent = label;
-                
-                if (data[key] === '#DIV/0!' || data[key] === '#N/A') {
-                    gradeCell.textContent = 'No disponible';
-                    gradeCell.style.color = 'red';
-                } else {
-                    gradeCell.textContent = typeof data[key] === 'number' ? 
-                        data[key].toFixed(1) : data[key];
-                }
-
-                if (key === 'notaFinal') {
-                    row.classList.add('nota-final');
-                }
-
-                row.appendChild(nameCell);
-                row.appendChild(gradeCell);
-                notasTable.appendChild(row);
-            });
-
-            observacionesText.textContent = data.observaciones || 'No hay observaciones disponibles.';
-            resultados.classList.remove('hidden');
-        }
-    </script>
 </body>
 </html>
