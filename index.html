@@ -18,14 +18,12 @@
             padding: 20px;
             margin-bottom: 20px;
         }
-        h1, h2 {
-            margin-top: 0;
-            color: #333;
-        }
         select {
             padding: 8px;
             width: 300px;
             margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
         }
         button {
             background: #1a73e8;
@@ -37,12 +35,11 @@
         }
         button:disabled {
             background: #ccc;
-            cursor: not-allowed;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 10px 0;
+            margin-top: 20px;
         }
         th, td {
             padding: 12px;
@@ -51,32 +48,35 @@
         }
         th {
             background: #f8f9fa;
-            font-weight: bold;
         }
         .nota-final {
             font-weight: bold;
         }
-        .observaciones {
-            color: #333;
-            line-height: 1.5;
-        }
-        ul {
-            padding-left: 20px;
-            margin: 0;
-        }
-        li {
-            margin: 8px 0;
-        }
-        .error {
-            color: red;
-            font-style: italic;
-        }
         .hidden {
+            display: none;
+        }
+        #loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255,255,255,0.9);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #error {
+            color: red;
+            margin-top: 10px;
             display: none;
         }
     </style>
 </head>
 <body>
+    <div id="loading">Cargando...</div>
+    <div id="error"></div>
+
     <div class="card">
         <h1>Sistema de Notas Estudiantes</h1>
         <div>
@@ -88,7 +88,7 @@
         </div>
     </div>
 
-    <div id="notasSection" class="hidden">
+    <div id="resultados" class="hidden">
         <div class="card">
             <h2>Notas del Estudiante</h2>
             <table>
@@ -104,7 +104,7 @@
 
         <div class="card">
             <h2>Observaciones</h2>
-            <p id="observaciones" class="observaciones"></p>
+            <p id="observaciones"></p>
         </div>
 
         <div class="card">
@@ -122,47 +122,74 @@
     <script>
         const rutSelector = document.getElementById('rutSelector');
         const verNotasBtn = document.getElementById('verNotas');
-        const notasSection = document.getElementById('notasSection');
+        const resultados = document.getElementById('resultados');
         const notasTable = document.getElementById('notasTable');
         const observacionesText = document.getElementById('observaciones');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
 
-        // Cargar lista de estudiantes
-        window.onload = function() {
-            google.script.run
-                .withSuccessHandler(populateStudentList)
-                .withFailureHandler(handleError)
-                .getStudentData();
-        };
-
-        function populateStudentList(students) {
-            students.forEach(student => {
-                const option = document.createElement('option');
-                option.value = student.rut;
-                option.textContent = student.rut;
-                rutSelector.appendChild(option);
-            });
+        function showLoading() {
+            loading.style.display = 'block';
         }
 
+        function hideLoading() {
+            loading.style.display = 'none';
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.style.display = 'block';
+            setTimeout(() => {
+                error.style.display = 'none';
+            }, 3000);
+        }
+
+        // Cargar lista de estudiantes al inicio
+        window.onload = function() {
+            showLoading();
+            google.script.run
+                .withSuccessHandler(function(estudiantes) {
+                    estudiantes.forEach(estudiante => {
+                        const option = document.createElement('option');
+                        option.value = estudiante.rut;
+                        option.textContent = estudiante.rut;
+                        rutSelector.appendChild(option);
+                    });
+                    hideLoading();
+                })
+                .withFailureHandler(function(error) {
+                    showError('Error al cargar la lista de estudiantes: ' + error);
+                    hideLoading();
+                })
+                .obtenerEstudiantes();
+        };
+
+        // Habilitar/deshabilitar botón según selección
         rutSelector.addEventListener('change', function() {
             verNotasBtn.disabled = !this.value;
+            resultados.classList.add('hidden');
         });
 
+        // Manejar click en Ver Notas
         verNotasBtn.addEventListener('click', function() {
             if (!rutSelector.value) return;
             
-            notasSection.classList.add('hidden');
+            showLoading();
+            resultados.classList.add('hidden');
+            
             google.script.run
-                .withSuccessHandler(displayGrades)
-                .withFailureHandler(handleError)
-                .getGradesByRut(rutSelector.value);
+                .withSuccessHandler(function(notas) {
+                    mostrarNotas(notas);
+                    hideLoading();
+                })
+                .withFailureHandler(function(error) {
+                    showError('Error al obtener las notas: ' + error);
+                    hideLoading();
+                })
+                .obtenerNotas(rutSelector.value);
         });
 
-        function displayGrades(data) {
-            if (!data) {
-                alert('No se encontraron datos para este estudiante');
-                return;
-            }
-
+        function mostrarNotas(data) {
             notasTable.innerHTML = '';
             
             const criterios = [
@@ -183,7 +210,7 @@
                 
                 if (data[key] === '#DIV/0!' || data[key] === '#N/A') {
                     gradeCell.textContent = 'No disponible';
-                    gradeCell.classList.add('error');
+                    gradeCell.style.color = 'red';
                 } else {
                     gradeCell.textContent = typeof data[key] === 'number' ? 
                         data[key].toFixed(1) : data[key];
@@ -199,11 +226,7 @@
             });
 
             observacionesText.textContent = data.observaciones || 'No hay observaciones disponibles.';
-            notasSection.classList.remove('hidden');
-        }
-
-        function handleError(error) {
-            alert('Error al cargar los datos: ' + error);
+            resultados.classList.remove('hidden');
         }
     </script>
 </body>
